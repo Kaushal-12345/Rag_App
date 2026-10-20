@@ -1,5 +1,3 @@
-"""Application settings loaded from environment variables."""
-
 from functools import lru_cache
 from pathlib import Path
 
@@ -37,7 +35,11 @@ class Settings(BaseSettings):
     upload_dir: Path = BACKEND_ROOT / "data" / "uploads"
 
     log_level: str = "INFO"
-    cors_origins: str = "https://rag-app-one-zeta.vercel.app/"
+
+    # Set CORS_ORIGINS in Render to comma-separated frontend origins.
+    # Example: https://your-app.vercel.app,http://localhost:3000
+    cors_origins: str = "http://localhost:3000"
+
     llm_timeout_seconds: float = 90.0
 
     # Web search (Tavily is primary; DuckDuckGo via `ddgs` is the fallback).
@@ -57,8 +59,8 @@ class Settings(BaseSettings):
     rate_limit_per_minute: int = Field(default=60, ge=1)
 
     # Optional fallbacks.
-    ocr_enabled: bool = True  # needs the `tesseract` binary; skipped quietly if missing
-    whisper_fallback: bool = False  # needs `pip install -r requirements-optional.txt`
+    ocr_enabled: bool = True
+    whisper_fallback: bool = False
     whisper_model: str = "base"
 
     @property
@@ -75,7 +77,15 @@ class Settings(BaseSettings):
         return self.llm_model_1
 
     def cors_origin_list(self) -> list[str]:
-        return [origin.strip() for origin in self.cors_origins.split(",") if origin.strip()]
+        """Return normalized, exact origins for CORS."""
+        origins = []
+
+        for raw_origin in self.cors_origins.split(","):
+            origin = raw_origin.strip().rstrip("/")
+            if origin:
+                origins.append(origin)
+
+        return origins
 
 
 @lru_cache(maxsize=1)

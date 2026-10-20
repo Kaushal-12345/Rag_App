@@ -23,19 +23,32 @@ from app.utils.logging import configure_logging
 from app.utils.rate_limit import RateLimitMiddleware
 
 
-def _build_services(settings: Settings) -> tuple[IngestPipeline, RagService, ChromaVectorStore]:
+def _build_services(
+    settings: Settings,
+) -> tuple[IngestPipeline, RagService, ChromaVectorStore]:
     embedder = SentenceTransformerEmbedder(settings)
     vector_store = ChromaVectorStore(settings.chroma_path)
     llm = OpenAICompatibleClient(settings)
-    pipeline = IngestPipeline(settings=settings, embedder=embedder, vector_store=vector_store)
+
+    pipeline = IngestPipeline(
+        settings=settings,
+        embedder=embedder,
+        vector_store=vector_store,
+    )
+
     rag = RagService(
         settings=settings,
         embedder=embedder,
         vector_store=vector_store,
         llm=llm,
         web_searcher=DefaultWebSearcher(settings),
-        reranker=CrossEncoderReranker(settings.rerank_model) if settings.rerank_enabled else None,
+        reranker=(
+            CrossEncoderReranker(settings.rerank_model)
+            if settings.rerank_enabled
+            else None
+        ),
     )
+
     return pipeline, rag, vector_store
 
 
@@ -43,30 +56,45 @@ def _build_services(settings: Settings) -> tuple[IngestPipeline, RagService, Chr
 async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     settings = get_settings()
     configure_logging(settings.log_level)
+
     pipeline, rag, vector_store = _build_services(settings)
+
     app.state.settings = settings
     app.state.pipeline = pipeline
     app.state.rag_service = rag
     app.state.vector_store = vector_store
+
     yield
 
 
 app = FastAPI(
     title="RAG App",
     version="1.0.0",
-    description="Chat with PDFs and YouTube videos using open-source models and optional web search.",
+    description=(
+        "Chat with PDFs and YouTube videos using open-source models "
+        "and optional web search."
+    ),
     lifespan=lifespan,
 )
 
-_settings = get_settings()
-app.add_middleware(RateLimitMiddleware, per_minute=_settings.rate_limit_per_minute)
+settings = get_settings()
+
+# Add CORS middleware. Normalize origins so a trailing slash in an
+# environment variable doesn't cause a mismatch with the browser Origin.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_settings.cors_origin_list() or ["https://rag-app-one-zeta.vercel.app/"],
+    allow_origins=settings.cors_origin_list(),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Keep the rate-limit middleware after CORS configuration.
+app.add_middleware(
+    RateLimitMiddleware,
+    per_minute=settings.rate_limit_per_minute,
+)
+
 app.include_router(ingest_router)
 app.include_router(chat_router)
 app.include_router(sources_router)
