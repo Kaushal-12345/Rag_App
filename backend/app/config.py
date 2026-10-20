@@ -37,7 +37,7 @@ class Settings(BaseSettings):
     upload_dir: Path = BACKEND_ROOT / "data" / "uploads"
 
     log_level: str = "INFO"
-    cors_origins: str = "https://rag-app-06td.onrender.com"
+    cors_origins: str = "https://rag-app-one-zeta.vercel.app/"
     llm_timeout_seconds: float = 90.0
 
     # Web search (Tavily is primary; DuckDuckGo via `ddgs` is the fallback).
