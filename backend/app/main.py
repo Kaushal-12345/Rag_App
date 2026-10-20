@@ -62,7 +62,7 @@ _settings = get_settings()
 app.add_middleware(RateLimitMiddleware, per_minute=_settings.rate_limit_per_minute)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=_settings.cors_origin_list() or ["http://localhost:3000"],
+    allow_origins=_settings.cors_origin_list() or ["https://rag-app-06td.onrender.com"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
