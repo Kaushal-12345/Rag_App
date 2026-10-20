@@ -1,0 +1,4 @@
+# Speech-to-text fallback for YouTube videos without captions (WHISPER_FALLBACK=true).
+# Also needs ffmpeg installed on your machine: `brew install ffmpeg`.
+yt-dlp>=2025.1.1
+faster-whisper>=1.0.0

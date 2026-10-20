@@ -1,0 +1,20 @@
+{
+  "description": "EDIT ME: replace these with 15-30 questions about the PDF you pass to run_eval.py. Keep a few questions the document cannot answer (expect_refusal: true).",
+  "questions": [
+    {
+      "question": "REPLACE ME: a question with a specific, checkable answer (a number, a name, a date)",
+      "expected_keywords": ["REPLACE", "ME"],
+      "expect_refusal": false
+    },
+    {
+      "question": "REPLACE ME: a question that needs information from two different places in the document",
+      "expected_keywords": [],
+      "expect_refusal": false
+    },
+    {
+      "question": "Who won the 2018 FIFA World Cup?",
+      "expected_keywords": [],
+      "expect_refusal": true
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+# secrets
+.env
+.env.local
+
+# python
+.venv/
+venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# local data (uploaded files and vector database)
+backend/data/uploads/*
+backend/data/vector_db/*
+!backend/data/uploads/.gitkeep
+!backend/data/vector_db/.gitkeep
+
+# node
+frontend/node_modules/
+frontend/.next/
+frontend/next-env.d.ts
+
+# misc
+.DS_Store
+
+frontend/.env.local

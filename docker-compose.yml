@@ -1,0 +1,29 @@
+# Run everything:  docker compose up --build
+# Then open http://localhost:3000
+services:
+  backend:
+    build: ./backend
+    env_file: .env
+    environment:
+      CORS_ORIGINS: http://localhost:3000
+    ports:
+      - "8000:8000"
+    volumes:
+      - app-data:/app/data      # uploaded files + vector database survive restarts
+      - model-cache:/models     # embedding model is downloaded once
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        NEXT_PUBLIC_API_URL: http://localhost:8000
+    ports:
+      - "3000:3000"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  app-data:
+  model-cache:
