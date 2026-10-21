@@ -1,3 +1,4 @@
+
 """Ingest pipelines: PDF and YouTube → chunk → embed → index."""
 
 from __future__ import annotations
@@ -42,6 +43,7 @@ class IngestPipeline:
         """Index a PDF into a session collection and return ingest stats."""
         session = session_id or new_id()
         source_id = new_id()
+
         pages = load_pdf(
             path,
             source=filename,
@@ -49,20 +51,24 @@ class IngestPipeline:
             session_id=session,
             ocr=self._settings.ocr_enabled,
         )
+
         chunks = chunk_pages(
             pages,
             chunk_size=self._settings.chunk_size_tokens,
             overlap=self._settings.chunk_overlap_tokens,
         )
+
         if not chunks:
             raise ValueError(
                 "No extractable text found in this PDF. It looks like a scan, and OCR "
                 "isn't available (install Tesseract: `brew install tesseract`)."
             )
+
         for chunk in chunks:
             chunk.metadata["source_type"] = "pdf"
 
         self._index(session, source_id, chunks)
+
         logger.info(
             "Indexed session=%s source=%s pages=%s chunks=%s",
             session,
@@ -70,6 +76,7 @@ class IngestPipeline:
             len(pages),
             len(chunks),
         )
+
         return IngestResponse(
             session_id=session,
             source_id=source_id,
@@ -87,11 +94,13 @@ class IngestPipeline:
         """Fetch a video transcript and index it with timestamp metadata."""
         session = session_id or new_id()
         source_id = new_id()
+
         video_id, windows = fetch_windows(
             url,
             whisper_fallback=self._settings.whisper_fallback,
             whisper_model=self._settings.whisper_model,
         )
+
         title = fetch_title(video_id) or f"YouTube video {video_id}"
 
         chunks = [
@@ -113,7 +122,14 @@ class IngestPipeline:
         ]
 
         self._index(session, source_id, chunks)
-        logger.info("Indexed session=%s video=%s chunks=%s", session, video_id, len(chunks))
+
+        logger.info(
+            "Indexed session=%s video=%s chunks=%s",
+            session,
+            video_id,
+            len(chunks),
+        )
+
         return IngestResponse(
             session_id=session,
             source_id=source_id,
@@ -123,10 +139,32 @@ class IngestPipeline:
             url=f"https://www.youtube.com/watch?v={video_id}",
         )
 
-    def _index(self, session: str, source_id: str, chunks: list[Chunk]) -> None:
+    def _index(
+        self,
+        session: str,
+        source_id: str,
+        chunks: list[Chunk],
+    ) -> None:
         texts = [chunk.text for chunk in chunks]
+
+        logger.info(
+            "Indexing started: session=%s source=%s chunks=%s",
+            session,
+            source_id,
+            len(texts),
+        )
+
+        logger.info("Starting embedding generation")
         embeddings = self._embedder.embed(texts)
+
+        logger.info(
+            "Embedding generation completed: %s embeddings",
+            len(embeddings),
+        )
+
         ids = [f"{source_id}_{index}" for index in range(len(chunks))]
+
+        logger.info("Starting vector-store upsert")
         self._vector_store.upsert(
             collection=collection_name(session),
             ids=ids,
@@ -134,3 +172,5 @@ class IngestPipeline:
             embeddings=embeddings,
             metadatas=[chunk.metadata for chunk in chunks],
         )
+
+        logger.info("Vector-store upsert completed")
